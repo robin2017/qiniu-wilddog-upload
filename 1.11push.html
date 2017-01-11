@@ -1,0 +1,197 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>野狗+七牛 图片存储 - JavaScript </title>
+    <link href="favicon.ico" rel="shortcut icon">
+    <link rel="stylesheet" href="http://apps.bdimg.com/libs/bootstrap/3.0.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="highlight.css">
+
+    <script type="text/javascript" id="RestFul">
+        //reference: HTTP Get request http://stackoverflow.com/questions/247483/http-get-request-in-javascript
+        var httpGet = function (theUrl) {
+            var xmlHttp = new XMLHttpRequest(theUrl);
+            xmlHttp.open("GET", theUrl, false); // false for synchronous request
+            xmlHttp.send(null);
+            return xmlHttp.responseText;
+        }
+    </script>
+<script type="text/javascript" id="upload_">
+    function init() {
+        var ref = new Wilddog('https://example.wilddogio.com/');
+        var uploader = Qiniu.uploader({
+            runtimes: 'html5,flash,html4',      // 上传模式，依次退化
+            browse_button: 'pickfiles',         // 上传选择的点选按钮，必需
+            // 在初始化时，uptoken，uptoken_url，uptoken_func三个参数中必须有一个被设置
+            // 切如果提供了多个，其优先级为uptoken > uptoken_url > uptoken_func
+            // 其中uptoken是直接提供上传凭证，uptoken_url是提供了获取上传凭证的地址，如果需要定制获取uptoken的过程则可以设置uptoken_func
+            // uptoken : '<Your upload token>', // uptoken是上传凭证，由其他程序生成
+            // uptoken_url: '/uptoken',         // Ajax请求uptoken的Url，强烈建议设置（服务端提供）
+            //uptoken_func: encrypt(),
+            uptoken: httpGet("http://example/uptoken"),
+            get_new_uptoken: false,             // 设置上传文件的时候是否每次都重新获取新的uptoken
+            // downtoken_url: '/downtoken',
+            // Ajax请求downToken的Url，私有空间时使用，JS-SDK将向该地址POST文件的key和domain，服务端返回的JSON必须包含url字段，url值为该文件的下载地址
+            unique_names: true,              // 默认false，key为文件名。若开启该选项，JS-SDK会为每个文件自动生成key（文件名）
+            // save_key: true,                  // 默认false。若在服务端生成uptoken的上传策略中指定了sava_key，则开启，SDK在前端将不对key进行任何处理
+            domain: 'http://example.bkt.clouddn.com/',     // bucket域名，下载资源时用到，必需
+            container: 'container',             // 上传区域DOM ID，默认是browser_button的父元素
+            max_file_size: '100mb',             // 最大文件体积限制
+            flash_swf_url: 'js/plupload/Moxie.swf',  //引入flash，相对路径
+            max_retries: 3,                     // 上传失败最大重试次数
+            dragdrop: true,                     // 开启可拖曳上传
+            drop_element: 'container',          // 拖曳上传区域元素的ID，拖曳文件或文件夹后可触发上传
+            chunk_size: '4mb',                  // 分块上传时，每块的体积
+            auto_start: true,                   // 选择文件后自动上传，若关闭需要自己绑定事件触发上传
+            //x_vars : {
+            //    查看自定义变量
+            //    'time' : function(up,file) {
+            //        var time = (new Date()).getTime();
+            // do something with 'time'
+            //        return time;
+            //    },
+            //    'size' : function(up,file) {
+            //        var size = file.size;
+            // do something with 'size'
+            //        return size;
+            //    }
+            //},
+            init: {
+                'FilesAdded': function (up, files) {
+                    plupload.each(files, function (file) {
+                        // 文件添加进队列后，处理相关的事情
+                        //file type: object; file.name 获取 文件名
+                    });
+                },
+                'BeforeUpload': function (up, file) {
+                    // 每个文件上传前，处理相关的事情
+                },
+                'UploadProgress': function (up, file) {
+                    // 每个文件上传时，处理相关的事情
+                },
+                'FileUploaded': function (up, file, info) {
+                    //hash?
+                    //typeof(file) = object; typeof(info) = string; 
+                    info_=JSON.parse(info);  
+                    info_['file_name'] = file.name;  
+                    console.log(info_);  
+                    ref.child('img/1').push(info_, function (error) {
+                        if (error == null)
+                            console.info("complete.");
+                        else
+                            console.info(error);
+                    });
+                    //info.key -> wilddog
+                    // 每个文件上传成功后，处理相关的事情
+                    // 其中info是文件上传成功后，服务端返回的json，形式如：
+                    // {
+                    //    "hash": "Fh8xVqod2MQ1mocfI4S4KpRL6D98",
+                    //    "key": "gogopher.jpg"
+                    //  }
+                    // 查看简单反馈
+                    // var domain = up.getOption('domain');
+                    // var res = parseJSON(info);
+                    // var sourceLink = domain +"/"+ res.key; 获取上传成功后的文件的Url
+                },
+                'Error': function (up, err, errTip) {
+                    console.log(err);
+                    //上传出错时，处理相关的事情
+                },
+                'UploadComplete': function () {
+                    //队列文件处理完毕后，处理相关的事情
+                },
+                'Key': function (up, file) {
+                    // 若想在前端对每个文件的key进行个性化处理，可以配置该函数
+                    // 该配置必须要在unique_names: false，save_key: false时才生效
+
+                    var key = "";
+                    // do something with key here
+                    return key
+                }
+            }
+        });
+    }
+
+</script>
+<!-->Listen on the data saved in wilddog. <-->
+<script type="text/javascript" id="listen">
+// 不能在此申明 ref 
+    function get_link() {
+        var ref_listen = new Wilddog('https://example.wilddogio.com/img/1');
+        var result;
+        ref_listen.orderByKey().on("child_added", function (snapshot) {
+            result = snapshot.key();
+            console.log(result);
+            ref_listen.child(result).once("value", function (snapshot) {
+                qiniu_url = JSON.parse(snapshot.val()).key;
+                console.log(qiniu_url);
+            }, function (err) {
+                if (err !== null)
+                    console.log(err);
+            });
+        }, function (err) {
+            if (err !== null)
+                console.log(err);
+        });
+
+    }
+</script>
+
+<!--[if lt IE 9]>
+      <script src="js/Respond-1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<style type="text/css">
+    .container-fluid {
+  padding: 20px;
+  }
+.box {
+  margin-bottom: 20px;
+  float: left;
+  width: 220px;
+  }
+  .box img {
+  max-width: 100%
+}
+</style>
+<body onload="init()">
+<div class="container">
+    <div class="text-left col-md-12 wrapper">
+        <h1 class="text-left col-md-12 ">
+            WildDog + qiniu 实现图片存储
+        </h1>
+    </div>
+    <div class="body">
+        <div class="col-md-12">
+            <div id="container" style="position: relative;">
+<a class="btn btn-default btn-lg " id="pickfiles" href="#" style="position: relative; z-index: 1;">
+<i class="glyphicon glyphicon-plus"></i>
+<span>选择文件</span>
+</a>
+</div>
+
+</div>
+
+<div style="display:none" id="success" class="col-md-12">
+<div class="alert-success">
+    队列全部文件处理完毕
+</div>
+</div>
+</div>
+</div>
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <script src="https://cdn.wilddog.com/js/client/current/wilddog.js"></script>
+    <script src="https://cdn.wilddog.com/js/client/current/wilddog.js"></script>
+    <script type="text/javascript" src="js/plupload/plupload.full.min.js"></script>
+    <script type="text/javascript" src="js/plupload/plupload.full.min.js"></script>
+    <script type="text/javascript" src="js/plupload/i18n/zh_CN.js"></script>
+    <script type="text/javascript" src="js/qiniu.js"></script>
+    <script type="text/javascript" src="js/conf.js"></script>
+    <script type="text/javascript" src="js/masonry-docs.min.js"></script>
+    <script type="text/javascript" src='js/crypto-js/crypto-js.js'></script>
+
+</body>
+
+</html>
